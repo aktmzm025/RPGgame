@@ -155,8 +155,12 @@ class Game {
         Shop specialShop = new Shop("특수 아이템 상점", ShopType.SPECIAL);
         specialShop.addItem(new Scroll("귀환 두루마리", 200));
         specialShop.addItem(new Scroll("정화 두루마리", 300));
-        specialShop.addItem(new Potion("만능 물약", 500, 50, 50, 50));
-        specialShop.addItem(new Equipment("행운의 반지", 1000, 0, 0, 0, 0));
+        
+        // 만능 물약은 HealthPotion 대신 새로운 클래스로 구현
+        specialShop.addItem(new UniversalPotion("만능 물약", 500, 50, 50, 50));
+        
+        // Equipment 대신 Armor 클래스 사용
+        specialShop.addItem(new Armor("행운의 반지", 1000, 0, 0, null));
         
         shops.add(specialShop);
     }
@@ -511,7 +515,8 @@ class Game {
         return locationMonsters.get(random.nextInt(locationMonsters.size()));
     }
 
-    private Item generateRandomItem() {
+ // Game 클래스 내부의 generateRandomItem 메서드 수정
+    public Item generateRandomItem() {  // private -> public 으로 변경
         int roll = random.nextInt(100);
         
         if (roll < 40) {
@@ -722,7 +727,7 @@ class Game {
         
         System.out.print("판매할 아이템 번호를 선택하세요 (0: 취소): ");
         int choice = scanner.nextInt();
-        scanner.nextLine(); // 버퍼 비우기
+        scanner.nextLine();
         
         if (choice > 0 && choice <= sellableItems.size()) {
             Item selectedItem = sellableItems.get(choice - 1);
@@ -743,7 +748,7 @@ class Game {
         System.out.print("선택: ");
         
         int choice = scanner.nextInt();
-        scanner.nextLine(); // 버퍼 비우기
+        scanner.nextLine();
         
         switch (choice) {
             case 1:
@@ -804,7 +809,7 @@ class Game {
         
         System.out.print("\n수락할 퀘스트 번호를 선택하세요 (0: 취소): ");
         int choice = scanner.nextInt();
-        scanner.nextLine(); // 버퍼 비우기
+        scanner.nextLine();
         
         if (choice > 0 && choice <= availableQuests.size()) {
             Quest selectedQuest = availableQuests.get(choice - 1);
@@ -832,7 +837,7 @@ class Game {
         
         System.out.print("\n보상을 받을 퀘스트 번호를 선택하세요 (0: 취소): ");
         int choice = scanner.nextInt();
-        scanner.nextLine(); // 버퍼 비우기
+        scanner.nextLine();
         
         if (choice > 0 && choice <= completableQuests.size()) {
             Quest completedQuest = completableQuests.get(choice - 1);
@@ -863,7 +868,7 @@ class Game {
             
             try {
                 int choice = scanner.nextInt();
-                scanner.nextLine(); // 버퍼 비우기
+                scanner.nextLine();
                 
                 switch (choice) {
                     case 1:
@@ -1218,9 +1223,9 @@ class Shop {
                 
             case SPECIAL:
                 items.add(new Scroll("귀환 두루마리", 200));
-                items.add(new Potion("만능 물약", 500, 50, 50, 50));
+                items.add(new UniversalPotion("만능 물약", 500, 50, 50, 50));
                 if (random.nextDouble() < 0.3) {
-                    items.add(new Equipment("행운의 반지", 1000, 0, 0, 0, 0));
+                    items.add(new Armor("행운의 반지", 1000, 0, 0, null));
                 }
                 break;
         }
@@ -1554,42 +1559,17 @@ interface Item {
 }
 
 abstract class Equipment implements Item {
+    protected String name;
+    protected int price;
     protected int attack;
     protected int defense;
     protected int levelRequirement;
     protected PlayerClass requiredClass;
     
-    public int getAttack() { return attack; }
-    public int getDefense() { return defense; }
-    public int getLevelRequirement() { return levelRequirement; }
-    public PlayerClass getRequiredClass() { return requiredClass; }
-}
-
-class Weapon extends Equipment {
-    private String name;
-    private int price;
-    
-    public Weapon(String name, int price, int attack, int levelRequirement, PlayerClass requiredClass) {
+    public Equipment(String name, int price, int attack, int defense, int levelRequirement, PlayerClass requiredClass) {
         this.name = name;
         this.price = price;
         this.attack = attack;
-        this.defense = 0;
-        this.levelRequirement = levelRequirement;
-        this.requiredClass = requiredClass;
-    }
-    
-    public String getName() { return name; }
-    public int getPrice() { return price; }
-}
-
-class Armor extends Equipment {
-    private String name;
-    private int price;
-    
-    public Armor(String name, int price, int defense, int levelRequirement, PlayerClass requiredClass) {
-        this.name = name;
-        this.price = price;
-        this.attack = 0;
         this.defense = defense;
         this.levelRequirement = levelRequirement;
         this.requiredClass = requiredClass;
@@ -1597,6 +1577,22 @@ class Armor extends Equipment {
     
     public String getName() { return name; }
     public int getPrice() { return price; }
+    public int getAttack() { return attack; }
+    public int getDefense() { return defense; }
+    public int getLevelRequirement() { return levelRequirement; }
+    public PlayerClass getRequiredClass() { return requiredClass; }
+}
+
+class Weapon extends Equipment {
+    public Weapon(String name, int price, int attack, int levelRequirement, PlayerClass requiredClass) {
+        super(name, price, attack, 0, levelRequirement, requiredClass);
+    }
+}
+
+class Armor extends Equipment {
+    public Armor(String name, int price, int defense, int levelRequirement, PlayerClass requiredClass) {
+        super(name, price, 0, defense, levelRequirement, requiredClass);
+    }
 }
 
 interface Potion extends Item {
@@ -1667,14 +1663,14 @@ class StaminaPotion implements Potion {
     public int getAmount() { return amount; }
 }
 
-class Potion implements Item {
+class UniversalPotion implements Potion {
     private String name;
     private int price;
     private int healthAmount;
     private int manaAmount;
     private int staminaAmount;
     
-    public Potion(String name, int price, int healthAmount, int manaAmount, int staminaAmount) {
+    public UniversalPotion(String name, int price, int healthAmount, int manaAmount, int staminaAmount) {
         this.name = name;
         this.price = price;
         this.healthAmount = healthAmount;
@@ -1682,6 +1678,7 @@ class Potion implements Item {
         this.staminaAmount = staminaAmount;
     }
     
+    @Override
     public void use(Player player) {
         player.setHp(player.getHp() + healthAmount);
         player.setMana(player.getMana() + manaAmount);
@@ -1690,6 +1687,9 @@ class Potion implements Item {
     
     public String getName() { return name; }
     public int getPrice() { return price; }
+    public int getAmount() { 
+        return healthAmount + manaAmount + staminaAmount; 
+    }
 }
 
 class Scroll implements Item {
@@ -2035,44 +2035,5 @@ class Battle {
             return baseRate * 1.5;
         }
         return baseRate;
-    }
- // ManaPotion 클래스 추가
-    class ManaPotion implements Potion {
-        private String name;
-        private int price;
-        private int amount;
-        
-        public ManaPotion(String name, int price, int amount) {
-            this.name = name;
-            this.price = price;
-            this.amount = amount;
-        }
-        
-        @Override
-        public void use(Player player) {
-            player.setMana(player.getMana() + amount);
-        }
-        
-        public String getName() { return name; }
-        public int getPrice() { return price; }
-        public int getAmount() { return amount; }
-    }
-
-    // Armor 클래스 추가
-    class Armor extends Equipment {
-        private String name;
-        private int price;
-        
-        public Armor(String name, int price, int defense, int levelRequirement, PlayerClass requiredClass) {
-            this.name = name;
-            this.price = price;
-            this.attack = 0;
-            this.defense = defense;
-            this.levelRequirement = levelRequirement;
-            this.requiredClass = requiredClass;
-        }
-        
-        public String getName() { return name; }
-        public int getPrice() { return price; }
     }
 }
